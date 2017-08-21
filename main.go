@@ -3,42 +3,24 @@ package main
 import (
 	"net/http"
 
-	"github.com/gorilla/websocket"
 	"log"
+
+	"easycast/server"
+	"time"
 )
 
-type Message struct {
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Message  string `json:"message"`
-}
-
-var upgrader websocket.Upgrader
+var broadCaster *server.EasyCast
 
 func init() {
 	log.Println("Set config websocket")
-	upgrader = websocket.Upgrader{}
+	broadCaster = server.NewEasyCast(1*time.Second, 5)
 }
 
 func connectWebSocketHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Try")
-
-	wsocket, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Fatal(err)
-		return
+	ok := broadCaster.Subscribe(w, r)
+	if !ok {
+		log.Fatal("cannot subscribe")
 	}
-
-	defer wsocket.Close()
-
-	err = wsocket.WriteJSON(struct {
-		Str string `json:"hello"`
-	}{ "hello" })
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
 }
 
 func main() {
