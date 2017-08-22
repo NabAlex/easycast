@@ -1,14 +1,12 @@
 package server
 
 import (
-	"math/rand"
 	"net/http"
 
 	"net"
 
 	"encoding/json"
 
-	"strconv"
 	"time"
 
 	"log"
@@ -43,23 +41,21 @@ func getEasyCastCtx(wsContext *context.WsContext) *EasyCast {
 	return wsContext.Data.(*EasyCast)
 }
 
-func NewEasyCast(castDelay time.Duration, poolSize int) *EasyCast {
+func NewEasyCast(generator func() string, castDelay time.Duration, poolSize int) *EasyCast {
 	easyCast := new(EasyCast)
 	easyCast.pool = NewPool(poolSize)
 
 	easyCast.ConnectionMap = NewConnectionStorage()
 
 	go func(cast *EasyCast, delay time.Duration) {
-		var currency = 50
 		for {
-			currency += rand.Intn(10) - 5
-			currencyString := strconv.Itoa(currency)
+			message := generator()
 
 			lockMap := cast.ConnectionMap.GetAndLock()
 			for ctx, _ := range lockMap {
 				cast.pool.ThrowTask(shareAllUsers, &PassPoolStruct{
 					ctx: ctx,
-					msg: currencyString,
+					msg: message,
 				})
 			}
 			cast.ConnectionMap.UnLock()
